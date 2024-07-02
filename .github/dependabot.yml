@@ -9,4 +9,4 @@ updates:
       interval: "daily"
     allow:
     # Allow updates for CodeQL Action
-    - dependency-name: "github/codeql-action/init@v2"
+    - dependency-name: "github/codeql-action/*"
