@@ -1,0 +1,42 @@
+name: Rebase PR Branches
+
+on:
+  schedule:
+    - cron: '*10 * * *' # Runs daily at midnight UTC
+  workflow_dispatch: # Allows manual triggering of the workflow
+
+jobs:
+  rebase:
+    name: Rebase PR Branches
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch All Branches
+        run: git fetch --all
+
+      - name: List Open Pull Requests
+        id: list_prs
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: list-prs
+
+      - name: Rebase PR Branches
+        if: steps.list_prs.outputs.count > 0
+        run: |
+          for pr in $(gh pr list --state open --json number,headRefName --jq '.[] | .headRefName'); do
+            echo "Rebasing branch: $pr"
+            git checkout $pr
+            git rebase origin/main || (git rebase --abort && echo "Rebase failed for $pr")
+            git push --force-with-lease
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
